@@ -1,5 +1,6 @@
 import csv
 import sys
+from random import shuffle
 from optparse import OptionParser
 
 def writeToFile(fname, data):
@@ -20,6 +21,15 @@ def convertToFloat(dataset):
         newDataset.append(obj)
     return newDataset
 
+def shift(dataset, value):
+    newDataset = []
+    for data in dataset[:len(dataset)-1]:
+        chunk = []
+        for item in data:
+            chunk.append(item + value)
+        newDataset.append(chunk)
+    return newDataset
+
 def removeSecondCol(dataset):
     newDataset = []
     for data in dataset:
@@ -38,7 +48,7 @@ def ordinalOutput(dataset):
         if (d == 'g'):
             newData[lastElement] = 1
         else:
-            newData[lastElement] = -1
+            newData[lastElement] = 0
         newDataset.append(newData)
             
     return newDataset
@@ -47,6 +57,8 @@ def preprocess(dataset):
     newDataset = ordinalOutput(dataset)
     newDataset = removeSecondCol(newDataset)
     newDataset = convertToFloat(newDataset)
+    # newDataset = shift(newDataset, 2.0) not work
+    shuffle(newDataset)
     return newDataset
 
 def dataFromFile(fname):
@@ -62,7 +74,6 @@ def dataFromFile(fname):
 
 if __name__ == "__main__":
 
-        print('sdfasdf')
         optparser = OptionParser()
         optparser.add_option('-f', '--inputFile',
                                 dest='input',
@@ -75,7 +86,6 @@ if __name__ == "__main__":
 
         (options, args) = optparser.parse_args()
         
-        print('2')
         rawData = None
         if options.input is None:
                 rawData = sys.stdin
@@ -86,5 +96,5 @@ if __name__ == "__main__":
                 sys.exit('System will exit')
 
         dataset = preprocess(rawData)
-        
+        # print(dataset)
         writeToFile(options.output, dataset)
