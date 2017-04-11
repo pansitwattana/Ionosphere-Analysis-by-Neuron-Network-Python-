@@ -261,11 +261,15 @@ def train(datasetForTrain, nodes, threshold, count):
 
             trainNode = changeWeights(trainNode, learningRate, gradients, outputs, attributes)
 
-            result = outputs[::-1][0][0]
+            results = outputs[::-1][0]
 
-            error = math.fabs(result - expectedResult)
+            # e = 0.5(sqrt(X))
+            for result in results:
+                outputErrors = math.fabs(result - expectedResult)
+
+            avgOupputErrors = np.average(outputErrors)
             
-            errors.append(error)
+            errors.append(avgOupputErrors)
         
         errorsToPlot.append(avgError)
 
