@@ -2,6 +2,8 @@ import sys
 import csv
 import math
 import random
+import numpy as np
+import matplotlib.pyplot as plt
 from optparse import OptionParser
 
 def changeWeights(nodes, rate, gradients, y, attributes):
@@ -65,13 +67,16 @@ def backPropagation(expectedResult, results, nodes):
     outputs = results[::-1]
     nodesReverse = nodes[::-1]
 
-    error = expectedResult - outputs[0][0]
-    
     gradients = []
 
     #outputLayer
-    gradients.append([calGradient(error, outputs[0][0])])
+   
+    outputLayerGradients = []
+    for output in outputs[0]:
+        error = expectedResult - output
+        outputLayerGradients.append(calGradient(error, output))
 
+    gradients.append(outputLayerGradients)
     #Hidden Layer
     level = 0
     # print(outputs)
@@ -171,7 +176,7 @@ def loadNodesWeight(fname):
             if not nodesCount:
                 for count in row:
                     nodesCount.append(int(count))
-            else:
+            else:# [[2,3,1],[1,2,3]]
                 weights = []
                 for weight in row:
                     weights.append(float(weight))
@@ -210,6 +215,7 @@ def summary(errors):
     print("Wrong: " + str(len(bads)))
     percent = float(len(goods))/float(len(errors))
     print("Percent: " + str( 100 * percent))
+    return percent
 
 
 def dataFromFile(fname):
@@ -223,42 +229,50 @@ def dataFromFile(fname):
             dataset.append(item)
     return dataset
 
-def train(datasetForTrain, nodes, threshold):
+def train(datasetForTrain, nodes, threshold, count):
+
+    count += 1
+
+    avgError = 1
+
     trainNode = nodes
 
-    randomIndex = random.sample(range(0, len(datasetForTrain)), len(datasetForTrain))
+    errorsToPlot = []
 
-    errors = []
+    while avgError > threshold:
+       
+        count += 1
 
-    for i in range(len(datasetForTrain)):
+        randomIndex = random.sample(range(0, len(datasetForTrain)), len(datasetForTrain))
 
-        data = datasetForTrain[randomIndex[i]]
+        errors = []
 
-        attributes = getAttributes(data)
+        for i in range(len(datasetForTrain)):
 
-        expectedResult = getExpected(data)
+            data = datasetForTrain[randomIndex[i]]
 
-        outputs = runNeuronNetwork(trainNode, attributes, expectedResult)
+            attributes = getAttributes(data)
 
-        gradients = backPropagation(expectedResult, outputs, trainNode)
+            expectedResult = getExpected(data)
 
-        trainNode = changeWeights(trainNode, learningRate, gradients, outputs, attributes)
+            outputs = runNeuronNetwork(trainNode, attributes, expectedResult)
 
-        result = outputs[::-1][0][0]
+            gradients = backPropagation(expectedResult, outputs, trainNode)
 
-        error = math.fabs(result - expectedResult)
+            trainNode = changeWeights(trainNode, learningRate, gradients, outputs, attributes)
 
-        errors.append(error)
-    
-    avgError = sum(errors) / float(len(errors))
-    print('average error', avgError)
-    if avgError < threshold:
-        return trainNode
-    else:
-        retrain = train(datasetForTrain, trainNode, threshold)
-        if retrain:
-            return retrain
+            result = outputs[::-1][0][0]
+
+            error = math.fabs(result - expectedResult)
+            
+            errors.append(error)
         
+        errorsToPlot.append(avgError)
+
+        avgError = sum(errors) / float(len(errors))
+
+    print('average error', avgError, count)
+    return trainNode, errorsToPlot  
 
 def test(datasetForTest, nodes):
     errors = []
@@ -276,7 +290,7 @@ def test(datasetForTest, nodes):
         error = math.fabs(result - expectedResult)
         errors.append(error)
         # print("error: " + str(error))
-    summary(errors)
+    return summary(errors)
 
 if __name__ == "__main__":
 
@@ -307,6 +321,11 @@ if __name__ == "__main__":
                                 help='minimum error threshold for training',
                                 default=1.0,
                                 type='float')
+        optparser.add_option('-l', '--length',
+                                dest='length',
+                                help='no. of fold to seperate train and test',
+                                default=0.1,
+                                type='float')
 
         (options, args) = optparser.parse_args()
         
@@ -332,21 +351,41 @@ if __name__ == "__main__":
         learningRate = options.learningRate
 
         dataset = convertToFloat(rawData)
-        
-        start = 0
-        length = 30
 
-        datasetForTrain = dataset[start+length:len(dataset)]
-        datasetForTrain += dataset[0:start]
-        print("train data", len(datasetForTrain))
-        datasetForTest = dataset[start:start+length]
-        print("test data", len(datasetForTest))
-        print("start training")
+        foldPercent = options.length
+        length = int(foldPercent * float(len(dataset)))
 
-        threshold = options.threshold
+        accuracy = []
+        nodesToWrite = []
+        for start in range(0, len(dataset), length):
+            print(length)
+            datasetForTrain = dataset[start+length:len(dataset)]
+            datasetForTrain += dataset[0:start]
+            print("train data", len(datasetForTrain))
+            datasetForTest = []
+            if start+length < len(dataset):
+                datasetForTest = dataset[start:start+length]
+            else:
+                datasetForTest = dataset[start:]
+            print("test data", len(datasetForTest))
+            print("start training")
+
+            threshold = options.threshold
+            # if options.action == 'train':
+            newnodes, errorsToPlot = train(datasetForTrain, nodes, threshold, 0)
+            
+            plt.plot(errorsToPlot)
+
+            nodesToWrite.append(newnodes)
+            # elif options.action == 'test':
+            accuracy.append(test(datasetForTest, newnodes))
         
-        if options.action == 'train':
-            newnodes = train(datasetForTrain, nodes, threshold)
-            writeToFile(options.outputWeights, newnodes, nodesCount)
-        elif options.action == 'test':
-            test(datasetForTest, nodes)
+        print(accuracy)
+        print(np.mean(accuracy))
+
+        count = 1
+        for nodesWillWrite in nodesToWrite:
+            writeToFile(options.outputWeights + str(count), nodesWillWrite, nodesCount)
+            count += 1
+
+        plt.show()

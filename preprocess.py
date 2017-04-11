@@ -38,7 +38,7 @@ def removeSecondCol(dataset):
     return newDataset
         
 
-def ordinalOutput(dataset):
+def nominalOutput(dataset):
     newDataset = []
 
     for data in dataset:
@@ -54,10 +54,9 @@ def ordinalOutput(dataset):
     return newDataset
 
 def preprocess(dataset):
-    newDataset = ordinalOutput(dataset)
+    newDataset = nominalOutput(dataset)
     newDataset = removeSecondCol(newDataset)
     newDataset = convertToFloat(newDataset)
-    # newDataset = shift(newDataset, 2.0) not work
     shuffle(newDataset)
     return newDataset
 
