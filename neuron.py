@@ -3,23 +3,16 @@ import csv
 import math
 import random
 import numpy as np
-import matplotlib.pyplot as plt
+from matplotlib import pyplot as plt
 from optparse import OptionParser
 
 def changeWeights(nodes, rate, gradients, y, attributes):
-    # print("Start Change Weights, Rate: " + str(rate))
     nodes_re = nodes[::-1]
-    # print("outputs")
     outputs = y[::-1]
     outputs.append(attributes)
     outputs = outputs[1:len(outputs)]
-    # print(outputs)
-    # print("gradients")
-    # print(gradients)
     newNodes = []
     
-    # print("Weights")
-    # print(nodes)
     level = 0
     for nodeLevel in nodes_re:
         row = 0
@@ -28,17 +21,11 @@ def changeWeights(nodes, rate, gradients, y, attributes):
             index = 0
             newWeights = []
             for weight in weights:
-                # print(weight)
-                # print(gradients[level][row])
                 deltaWeight = 0
-                # print("Level+row+index", level, row, index, len(outputs[level]))
                 if (index < len(outputs[level])):
-                    # print(outputs[level][index])
                     deltaWeight = rate * gradients[level][row] * outputs[level][index]
                 else:
                     deltaWeight = rate * gradients[level][row]
-                # print("new weight of ", weight ,weight - deltaWeight)
-                # print('-')
                 newWeights.append(weight - deltaWeight)
                 index += 1
             row += 1
@@ -79,32 +66,19 @@ def backPropagation(expectedResult, results, nodes):
     gradients.append(outputLayerGradients)
     #Hidden Layer
     level = 0
-    # print(outputs)
-    # print("00000")
     for output in outputs[1:len(outputs)]:
-        # print(output)
         hiddenLayerGradients = []
-        # print("--------------")
         row = 0
         for y in output:
-            # print("y = " + str(y))
-            
             arrayX = []
             for i in range(len(nodesReverse[level])):
                 x = nodesReverse[level][i][row]
                 arrayX.append(x)
-            #     print("x = ", x)
-            # print("gradient = ", gradients[level])
-            # print("summation = ", sumOf(arrayX, gradients[level]))
             gradient = calGradient(sumOf(arrayX, gradients[level]), y)
             hiddenLayerGradients.append(gradient)
             row += 1
         level += 1
         gradients.append(hiddenLayerGradients)
-
-    # print("gradients--------------")
-    # print(gradients)
-
     return gradients
 
 def calSigmoid(v):
@@ -203,9 +177,9 @@ def writeToFile(fname, data, header):
 		writer.writerows(dataToWrite)
     print("done write file")
 
-def summary(errors):
+def calError(errors):
     goods = []
-    bads =[]
+    bads = []
     for error in errors:
         if error < 0.5:
             goods.append(error)
@@ -233,7 +207,7 @@ def train(datasetForTrain, nodes, threshold, count):
 
     count += 1
 
-    avgError = 1
+    avgError = 4
 
     trainNode = nodes
 
@@ -270,13 +244,18 @@ def train(datasetForTrain, nodes, threshold, count):
             avgOupputErrors = np.average(outputErrors)
             
             errors.append(avgOupputErrors)
-        
-        errorsToPlot.append(avgError)
 
         avgError = sum(errors) / float(len(errors))
 
+        # avgError = rootMeanSquare(errors)
+
+        errorsToPlot.append(avgError)
+
     print('average error', avgError, count)
     return trainNode, errorsToPlot  
+
+def rootMeanSquare(errors):
+    return 0.5 * math.sqrt(np.sum(np.square(errors)))
 
 def test(datasetForTest, nodes):
     errors = []
@@ -289,12 +268,12 @@ def test(datasetForTest, nodes):
         outputs = runNeuronNetwork(nodes, attributes, expectedResult)
 
         result = outputs[::-1][0][0]
-        # print("final output: " + str(result))
-        # print("expected value: " + str(expectedResult))
+
         error = math.fabs(result - expectedResult)
+
         errors.append(error)
-        # print("error: " + str(error))
-    return summary(errors)
+
+    return calError(errors)
 
 if __name__ == "__main__":
 
